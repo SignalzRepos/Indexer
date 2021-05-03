@@ -12,15 +12,15 @@ load_dotenv()
 
 CONTRACT_ADDRESS = "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d"
 abi_filename = "crypto_kitties_abi.txt"
-ERROR_CLR = '\033[91m'
-END_CLR = '\033[0m'
+ERROR_CLR = "\033[91m"
+END_CLR = "\033[0m"
 
 
 def print_error(msg: str) -> None:
     print(f"{ERROR_CLR}{msg}{END_CLR}")
 
 
-def print_cryptokitties_the_difficult_way()->None:
+def print_cryptokitties_the_difficult_way() -> None:
     abi = Path(abi_filename).read_text().strip()
     w3 = get_alchemy_conn()
 
@@ -39,20 +39,15 @@ def get_k_latest_approved_transaction(k=10) -> List[str]:
         )
         exit(1)
 
-    w3 = get_alchemy_conn()
-
-    print("Fetching latest block")
-    latest_block_num: int = w3.eth.get_block("latest").number
-    print(f"Latest block num -> {latest_block_num}")
-
     params = {
         "module": "account",
         "action": "txlist",
         "address": CONTRACT_ADDRESS,
         "startblock": 0,
-        "endblock": latest_block_num,
+        "endblock": 99999999,
         "page": 1,
         "offset": k,
+        "sort": "desc",
         "apikey": api_key,
     }
 

@@ -1,4 +1,6 @@
 import os
+import time
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import List
 
@@ -29,7 +31,7 @@ def print_cryptokitties_the_difficult_way() -> None:
     print(f"Contract Name: {contract.functions.name().call()}")
 
 
-def get_k_latest_approved_transaction(k=10) -> List[str]:
+def get_k_latest_transaction_hashes(k=10) -> List[str]:
     etherscan_api_url = "https://api.etherscan.io/api"
     api_key = os.getenv("ETHERSCAN_API_KEY")
 
@@ -68,15 +70,24 @@ def get_k_latest_approved_transaction(k=10) -> List[str]:
     return tx_hashes
 
 
-def get_crypto_kitty_logs(k=5):
+def get_crypto_kitty_logs(k=5, *, concurrent=True):
     w3 = get_alchemy_conn()
-    tx_list = get_k_latest_approved_transaction(k)
+    tx_hashes = get_k_latest_transaction_hashes(k)
 
     print("Fetching transactions receipts")
-    tx_receipts: List[AttributeDict] = [
-        w3.eth.get_transaction_receipt(tx_hash) for tx_hash in tx_list
-    ]
 
+    start_time = time.time()
+    tx_receipts: List[AttributeDict]
+
+    if concurrent:
+        with ThreadPool(processes=8) as pool:
+            tx_receipts = pool.map(w3.eth.get_transaction_receipt, tx_hashes)
+        pool.join()
+    else:
+        tx_receipts = [w3.eth.get_transaction_receipt(tx_hash) for tx_hash in tx_hashes]
+    time_taken = time.time() - start_time
+
+    print(f"\nTime taken: {time_taken:.3f}s")
     tx_logs: List[AttributeDict] = [tx["logs"] for tx in tx_receipts]
 
     return tx_logs
@@ -86,6 +97,7 @@ if __name__ == "__main__":
     from pprint import pprint
 
     # print_cryptokitties_the_difficult_way()
+    
     # pprint(get_k_latest_approved_transaction(5))
 
-    pprint(get_crypto_kitty_logs(5))
+    pprint(get_crypto_kitty_logs(5, concurrent=True))
